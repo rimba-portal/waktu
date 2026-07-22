@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Rimba\Time\Http\UI\Admin\Resources\Shifts;
 
 use BackedEnum;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables\Table;
 use Rimba\Time\Http\UI\Admin\Resources\Shifts\Pages\CreateShift;
 use Rimba\Time\Http\UI\Admin\Resources\Shifts\Pages\EditShift;
 use Rimba\Time\Http\UI\Admin\Resources\Shifts\Pages\ListShifts;
@@ -13,9 +16,6 @@ use Rimba\Time\Http\UI\Admin\Resources\Shifts\Schemas\ShiftForm;
 use Rimba\Time\Http\UI\Admin\Resources\Shifts\Schemas\ShiftInfolist;
 use Rimba\Time\Http\UI\Admin\Resources\Shifts\Tables\ShiftsTable;
 use Rimba\Time\Models\Shift;
-use Filament\Resources\Resource;
-use Filament\Schemas\Schema;
-use Filament\Tables\Table;
 use UnitEnum;
 
 class ShiftResource extends Resource

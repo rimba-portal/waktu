@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace Rimba\Time\Http\UI\Staff\Pages;
 
 use BackedEnum;
-use Rimba\Time\Enums\EventType;
-use Rimba\Time\Models\Event;
-use Rimba\Time\Services\ShiftPattern;
 use Carbon\Carbon;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
@@ -29,6 +26,9 @@ use Filament\Tables\Table;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use Rimba\Time\Enums\EventType;
+use Rimba\Time\Models\Event;
+use Rimba\Time\Services\ShiftPattern;
 use UnitEnum;
 
 class Calendar extends Page implements HasActions, HasForms, HasTable

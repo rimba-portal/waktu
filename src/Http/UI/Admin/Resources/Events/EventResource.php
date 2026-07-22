@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Rimba\Time\Http\UI\Admin\Resources\Events;
 
 use BackedEnum;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables\Table;
 use Rimba\Time\Http\UI\Admin\Resources\Events\Pages\CreateEvent;
 use Rimba\Time\Http\UI\Admin\Resources\Events\Pages\EditEvent;
 use Rimba\Time\Http\UI\Admin\Resources\Events\Pages\ListEvents;
@@ -13,9 +16,6 @@ use Rimba\Time\Http\UI\Admin\Resources\Events\Schemas\EventForm;
 use Rimba\Time\Http\UI\Admin\Resources\Events\Schemas\EventInfolist;
 use Rimba\Time\Http\UI\Admin\Resources\Events\Tables\EventsTable;
 use Rimba\Time\Models\Event;
-use Filament\Resources\Resource;
-use Filament\Schemas\Schema;
-use Filament\Tables\Table;
 use UnitEnum;
 
 class EventResource extends Resource

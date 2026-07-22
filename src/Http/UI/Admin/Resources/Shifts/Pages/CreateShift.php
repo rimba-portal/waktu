@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Rimba\Time\Http\UI\Admin\Resources\Shifts\Pages;
 
-use Rimba\Time\Http\UI\Admin\Resources\Shifts\ShiftResource;
 use Filament\Resources\Pages\CreateRecord;
+use Rimba\Time\Http\UI\Admin\Resources\Shifts\ShiftResource;
 
 class CreateShift extends CreateRecord
 {

@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace Rimba\Time;
 
-use Rimba\Base\BitesServiceProvider;
 use Filament\Actions\Action;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
-
+use Rimba\Base\BitesServiceProvider;
 
 class TimeServiceProvider extends BitesServiceProvider
 {
-    protected string $configFile = __DIR__ . '/../config/bites.php';
-    protected string $viewsPath = __DIR__ . '/../resources/views';
-    protected string $iconsPath = __DIR__ . '/../resources/svg';
+    protected string $configFile = __DIR__.'/../config/bites.php';
+
+    protected string $viewsPath = __DIR__.'/../resources/views';
+
+    protected string $iconsPath = __DIR__.'/../resources/svg';
 
     protected function bootPackage(): void
     {
@@ -31,9 +32,9 @@ class TimeServiceProvider extends BitesServiceProvider
         );
 
     }
+
     protected function registerPackage(): void
     {
         //
     }
-
 }

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Rimba\Time\Http\UI\Admin\Resources\Shifts\Pages;
 
-use Rimba\Time\Http\UI\Admin\Resources\Shifts\ShiftResource;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
+use Rimba\Time\Http\UI\Admin\Resources\Shifts\ShiftResource;
 
 class ViewShift extends ViewRecord
 {
