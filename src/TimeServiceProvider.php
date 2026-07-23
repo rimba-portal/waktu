@@ -7,7 +7,7 @@ namespace Rimba\Time;
 use Filament\Actions\Action;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
-use Rimba\Base\BitesServiceProvider;
+use Rimba\Base\Services\BitesServiceProvider;
 
 class TimeServiceProvider extends BitesServiceProvider
 {
