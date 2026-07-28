@@ -39,7 +39,7 @@ class Calendar extends Page implements HasActions, HasForms, HasTable
 
     protected static string|UnitEnum|null $navigationGroup = 'ToDo';
 
-    protected static string|BackedEnum|null $navigationIcon = 'rimba-s-calendar';
+    protected static string|BackedEnum|null $navigationIcon = 'bites-s-calendar';
 
     protected static ?string $navigationLabel = 'Calendar';
 
@@ -49,7 +49,7 @@ class Calendar extends Page implements HasActions, HasForms, HasTable
 
     protected ?string $subheading = 'Calendar view of workdays, holidays and events.';
 
-    protected string $view = 'bites.calendar';
+    protected string $view = 'bites::calendar';
 
     public $events;
 
