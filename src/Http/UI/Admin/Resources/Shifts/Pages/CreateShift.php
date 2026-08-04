@@ -10,4 +10,7 @@ use Rimba\Time\Http\UI\Admin\Resources\Shifts\ShiftResource;
 class CreateShift extends CreateRecord
 {
     protected static string $resource = ShiftResource::class;
+
+    // Custom
+
 }

@@ -10,4 +10,7 @@ use Rimba\Time\Http\UI\Admin\Resources\Events\EventResource;
 class CreateEvent extends CreateRecord
 {
     protected static string $resource = EventResource::class;
+
+    // Custom
+
 }
