@@ -22,7 +22,7 @@ class EventResource extends Resource
 {
     protected static ?string $model = Event::class;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Calendar';
+    protected static string|UnitEnum|null $navigationGroup = 'Time';
 
     protected static string|BackedEnum|null $navigationIcon = 'bites-event';
 

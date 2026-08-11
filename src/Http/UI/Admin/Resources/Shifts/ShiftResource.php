@@ -22,7 +22,7 @@ class ShiftResource extends Resource
 {
     protected static ?string $model = Shift::class;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Calendar';
+    protected static string|UnitEnum|null $navigationGroup = 'Time';
 
     protected static string|BackedEnum|null $navigationIcon = 'bites-shift';
 
