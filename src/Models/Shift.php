@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Rimba\Time\Models;
 
-use App\Trees\Organization\Models\OrgTeam;
-use App\Trees\Organization\Models\OrgUnit;
-use App\Trees\Organization\Models\Staff;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Rimba\Organization\Models\OrgTeam;
+use Rimba\Organization\Models\OrgUnit;
+use Rimba\People\Models\Staff;
 
 #[Fillable([
     'org_unit_id',
