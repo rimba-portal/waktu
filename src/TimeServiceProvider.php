@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Rimba\Time;
 
 use Filament\Actions\Action;
-use Filament\Facades\Filament;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
 use Rimba\Base\Services\BitesServiceProvider;
