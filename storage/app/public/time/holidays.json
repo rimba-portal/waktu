@@ -1,1 +1,28 @@
-[]
+[
+  {
+    "uid": "holiday-2026-01-01",
+    "title": "New Year's Day",
+    "date": "2026-01-01",
+    "type": "Paid Public Holiday",
+    "status": "confirmed",
+    "color": "#f97316"
+  },
+
+  {
+    "uid": "holiday-2026-02-17",
+    "title": "Chinese New Year",
+    "date": "2026-02-17",
+    "type": "Paid Public Holiday",
+    "status": "confirmed",
+    "color": "#f97316"
+  },
+
+  {
+    "uid": "holiday-2026-08-31",
+    "title": "National Day",
+    "date": "2026-08-31",
+    "type": "Paid Public Holiday",
+    "status": "confirmed",
+    "color": "#f97316"
+  }
+]

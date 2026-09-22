@@ -1,0 +1,18 @@
+[
+  {
+    "uid": "override-x-2026-08-31@rimba",
+    "role": "shift_code.X-4G3S",
+    "date": "2026-08-31",
+    "action": "holiday",
+    "reason": "National Day",
+    "attributes": {}
+  },
+  {
+    "uid": "override-w-2026-09-01@rimba",
+    "role": "shift_code.W-4G3S",
+    "date": "2026-09-01",
+    "action": "force_shift",
+    "shift_code": "M",
+    "reason": "Shift moved due to holiday"
+  }
+]

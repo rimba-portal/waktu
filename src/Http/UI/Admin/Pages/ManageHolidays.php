@@ -14,7 +14,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Support\Icons\Heroicon;
 use UnitEnum;
 
-final class ManageHolidays extends ManageJsonCalendar
+final class ManageHolidays extends ManageJsonCollection
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
 
@@ -29,12 +29,16 @@ final class ManageHolidays extends ManageJsonCalendar
         return 'holidays';
     }
 
+    protected function supportsIcs(): bool
+    {
+        return true;
+    }
+
     protected function recordSchema(): array
     {
         return [
             TextInput::make('uid')
-                ->required()
-                ->unique(ignoreRecord: true),
+                ->required(),
             TextInput::make('title')
                 ->required(),
             DatePicker::make('date')
@@ -45,8 +49,6 @@ final class ManageHolidays extends ManageJsonCalendar
                     'Unpaid Public Holiday' => 'Unpaid Public Holiday',
                     'In-Lieu Rest Day' => 'In-Lieu Rest Day',
                     'Collective Annual Leave' => 'Collective Annual Leave',
-                    'Saturday Off Day' => 'Saturday Off Day',
-                    'Saturday Replacement Leave' => 'Saturday Replacement Leave',
                     'Other' => 'Other',
                 ])
                 ->required(),

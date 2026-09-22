@@ -4,42 +4,33 @@ declare(strict_types=1);
 
 namespace Rimba\Time\Services;
 
+use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Auth\Authenticatable;
+
 final class CalendarEventService
 {
-    public function __construct(private TimeJsonRepository $timeJsonRepository) {}
+    public function __construct(private TimeJsonRepository $timeJsonRepository, private ShiftGeneratorService $shiftGeneratorService) {}
 
-    public function fullCalendarEvents(?string $team = null): array
+    public function forUser(Authenticatable $user, CarbonImmutable $from, CarbonImmutable $to): array
     {
-        $holidays = array_map(
-            fn (array $r): array => [
-                'id' => $r['uid'],
-                'title' => $r['title'],
-                'start' => $r['date'],
+        $holidays = collect($this->timeJsonRepository->all('holidays'))
+            ->filter(fn ($h): bool => ($h['date'] ?? '') >= $from->format('Y-m-d') && ($h['date'] ?? '') <= $to->format('Y-m-d'))
+            ->map(fn ($h): array => [
+                'id' => $h['uid'],
+                'title' => $h['title'],
+                'start' => $h['date'],
                 'allDay' => true,
-                'color' => $r['color'] ?? '#f97316',
-                'extendedProps' => ['kind' => 'holiday', 'type' => $r['type'] ?? null],
-            ],
-            $this->timeJsonRepository->all('holidays')
-        );
-        $workdays = array_values(
-            array_map(
-                fn (array $r): array => [
-                    'id' => $r['uid'],
-                    'title' => $r['title'] ?? trim(($r['team'] ?? '').' '.($r['shift_name'] ?? 'Shift')),
-                    'start' => $r['starts_at'] ?? $r['date'],
-                    'end' => $r['ends_at'] ?? null,
-                    'allDay' => blank($r['starts_at'] ?? null),
-                    'color' => $r['color'] ?? '#3b82f6',
-                    'extendedProps' => [
-                        'kind' => 'workday',
-                        'team' => $r['team'] ?? null,
-                        'shift_code' => $r['shift_code'] ?? null,
-                    ],
+                'color' => $h['color'] ?? '#f97316',
+                'extendedProps' => [
+                    'kind' => 'holiday',
+                    'type' => $h['type'] ?? null,
                 ],
-                array_filter($this->timeJsonRepository->all('workdays'), fn (array $r): bool => ! $team || ($r['team'] ?? null) === $team)
-            )
-        );
+            ])
+            ->values()
+            ->all();
+        $role = $this->shiftGeneratorService->roleFor($user);
+        $shifts = $role ? $this->shiftGeneratorService->eventsForRole($role, $from, $to) : [];
 
-        return [...$holidays, ...$workdays];
+        return [...$holidays, ...$shifts];
     }
 }

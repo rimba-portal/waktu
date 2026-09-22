@@ -1,10 +1,7 @@
-<x-filament-panels::page
-    ><x-filament::section
-        ><x-slot name="heading">
-            {{ $shiftRole ? 'My schedule: '.$shiftRole : 'Company calendar' }}
-        </x-slot>
-        <div wire:ignore id="waktu-calendar"></div
-    ></x-filament::section>
+<x-filament-panels::page>
+    <x-filament::section>
+        <div wire:ignore id="waktu-calendar"></div>
+    </x-filament::section>
     @assets
         <script src="{{ asset('js/rrule.min.js') }}"></script>
         <script src="{{ asset('js/calendar.min.js') }}"></script>
@@ -20,13 +17,9 @@
                 waktuCalendar = new FullCalendar.Calendar(el, {
                     initialView: 'dayGridMonth',
                     weekNumbers: true,
-                    firstDay: 1, // Start week on Monday
-                    headerToolbar: {
-                        left: 'prev,next today',
-                        center: 'title',
-                        right: 'multiMonthYear,dayGridMonth,timeGridWeek',
-                    },
-                    height: 600,
+                    firstDay: 1,
+                    height: 700,
+                    headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listMonth' },
                     events: @js($events),
                     eventDidMount: (i) => (i.el.title = i.event.title || ''),
                 });

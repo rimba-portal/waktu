@@ -3,71 +3,60 @@
 rimba/waktu
 ├── config/
 │   └── bites.php
-├── resources/
-│   └── views/
-│       └── filament/
-│           ├── admin/
-│           │   └── pages/
-│           │       └── manage-json-calendar.blade.php
-│           └── staff/
-│               └── pages/
-│                   └── calendar.blade.php
+├── resources/views/filament/
+│   ├── admin/pages/manage-json-collection.blade.php
+│   └── staff/pages/calendar.blade.php
 ├── src/
-│   ├── TimeServiceProvider.php
-│   ├── Enums/
-│   │   └── EventType.php
+│   ├── Http/UI/Admin/Pages/
+│   │   ├── ManageJsonCollection.php
+│   │   ├── ManageHolidays.php
+│   │   ├── ManageShiftDefinitions.php
+│   │   └── ManageOverrides.php
+│   ├── Http/UI/Staff/Pages/
+│   │   └── Calendar.php
 │   ├── Services/
 │   │   ├── TimeJsonRepository.php
 │   │   ├── CalendarConverterService.php
+│   │   ├── ShiftGeneratorService.php
 │   │   └── CalendarEventService.php
-│   └── Http/
-│       └── UI/
-│           ├── Admin/
-│           │   └── Pages/
-│           │       ├── ManageJsonCalendar.php
-│           │       ├── ManageHolidays.php
-│           │       └── ManageWorkdays.php
-│           └── Staff/
-│               └── Pages/
-│                   └── Calendar.php
-└── storage/
-    └── app/
-        └── public/
-            └── time/
-                ├── holidays.json
-                └── workdays.json
+│   └── TimeServiceProvider.php
+├── storage/app/public/time/
+│   ├── holidays.json
+│   ├── shift-definitions.json
+│   └── overrides.json
+└── README.md
 ```
 
-# Rimba Waktu JSON Calendar, Filament v5
-
-JSON is the source of truth. Admins CRUD actual dated holidays and workdays, import JSON/ICS, and export JSON/ICS. Staff see the merged calendar.
+## Source of truth
+- `holidays.json`: company/public holidays
+- `shift-definitions.json`: shift definition selected by a Spatie role such as `shift_code.X-4G3S`
+- `overrides.json`: date-specific exceptions for a role
 
 ## Install
-1. Copy `src`, `resources`, and `config` into `rimba/waktu`.
-2. Copy the example JSON files to `storage/app/public/time`.
-3. In `TimeServiceProvider`, load the package configuration and views:
-```php
-protected string $configFile = __DIR__.'/../config/bites.php';
-protected string $viewsPath = __DIR__.'/../resources/views';
-```
-4. Run `php artisan storage:link` and ensure the `public` disk is writable.
-5. Ensure FullCalendar's `index.global.min.js` exists at `public/js/index.global.min.js`.
-6. Discover/register Admin pages `ManageHolidays`, `ManageWorkdays`, and Staff page `Calendar` in their panels.
+1. Copy package files into `rimba/waktu`.
+2. Copy the three JSON files to `storage/app/public/time`.
+3. Ensure `TimeServiceProvider` is registered.
+4. Run `php artisan storage:link` and make the public disk writable.
+5. Put FullCalendar global build at `public/js/index.global.min.js`.
+6. Register/discover the three Admin pages and Staff Calendar page in their corresponding panels.
+7. Remove old EventResource and ShiftResource registrations.
 
-## Remove from panel discovery
-Remove the Eloquent `EventResource` and `ShiftResource`. The old database tables may remain temporarily, but this UI does not use them.
+## Roles
+The authenticated user must expose `getRoleNames()` and have at most one `shift_code.*` role. Examples:
+- `shift_code.1-Normal`
+- `shift_code.X-4G3S`
+- `shift_code.R-6G4S`
 
-## Import strategies
-- update: upsert by UID
-- append: ignore duplicate UIDs
-- replace_range: remove existing records inside the imported date range, then import
-- replace_all: replace the file
+## Important sample assumption
+The X/Y/Z 4G3S examples use the anchor, offsets, and 24-day sequence from the earlier Waktu configuration. The R/T 6G4S sequence and times were not supplied, so those two JSON entries are explicitly marked `attributes.sample_assumption=true`. Replace them with the approved HR cycle, anchor, offset, and times before production use.
 
-## ICS scope
-The importer supports standard VEVENT UID, SUMMARY, DESCRIPTION, DTSTART, DTEND, STATUS, CATEGORIES, TZID/VALUE parameters and Rimba extension fields. It intentionally stores resolved dated events. RRULE expansion, EXDATE, RDATE, VTIMEZONE generation, and RECURRENCE-ID are not part of this minimal version.
+## Precedence
+1. Matching date override
+2. Holiday observation
+3. Shift definition
 
-## Production notes
-- Restrict Admin pages through policies or `canAccess()`.
-- Back up JSON files before business-critical monthly imports.
-- Validate imported schedules in the form before saving.
-- Keep stable UIDs so future imports update the correct records.
+## ICS
+ICS import/export is intentionally limited to holidays. Shift definitions and overrides use JSON because they contain Rimba-specific role and cycle metadata.
+
+## Security
+Add your package permission checks through `canAccess()` on Admin pages. The package writes atomically but production deployments should also apply filesystem backups and restrict write access.

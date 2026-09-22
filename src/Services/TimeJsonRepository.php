@@ -12,10 +12,12 @@ use RuntimeException;
 
 final class TimeJsonRepository
 {
+    private const COLLECTIONS = ['holidays', 'shift-definitions', 'overrides'];
+
     public function all(string $collection): array
     {
-        $path = $this->path($collection);
         $disk = $this->disk();
+        $path = $this->path($collection);
         if (! $disk->exists($path)) {
             $this->replace($collection, []);
 
@@ -35,11 +37,16 @@ final class TimeJsonRepository
         return array_values(array_filter($rows, 'is_array'));
     }
 
-    public function replace(string $collection, array $records): void
+    public function replace(string $collection, array $rows): void
     {
-        $records = array_values(array_map(fn (array $r): array => $this->normalize($r), $records));
-        $this->assertUniqueUids($records);
-        $json = json_encode($records, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR).PHP_EOL;
+        $rows = array_values(array_map(fn (array $r): array => $this->normalize($collection, $r), $rows));
+        $key = $collection === 'shift-definitions' ? 'code' : 'uid';
+        $values = array_column($rows, $key);
+        if (count($values) !== count(array_unique($values))) {
+            throw new RuntimeException("Duplicate {$key} in {$collection}.");
+        }
+
+        $json = json_encode($rows, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR).PHP_EOL;
         $disk = $this->disk();
         $path = $this->path($collection);
         $tmp = $path.'.tmp-'.Str::uuid();
@@ -47,83 +54,69 @@ final class TimeJsonRepository
             throw new RuntimeException("Unable to write {$tmp}.");
         }
 
-        if ($disk->exists($path)) {
-            $disk->delete($path);
+        if ($disk->exists($path) && ! $disk->delete($path)) {
+            $disk->delete($tmp);
+            throw new RuntimeException("Unable to replace {$path}.");
         }
 
         if (! $disk->move($tmp, $path)) {
-            throw new RuntimeException("Unable to replace {$path}.");
+            throw new RuntimeException("Unable to move temporary file to {$path}.");
         }
     }
 
     public function merge(string $collection, array $incoming, string $strategy = 'update'): array
     {
-        $existing = $this->all($collection);
-        $incoming = array_map(fn (array $r): array => $this->normalize($r), $incoming);
         if ($strategy === 'replace_all') {
             $this->replace($collection, $incoming);
 
             return $incoming;
         }
 
-        if ($strategy === 'replace_range' && $incoming !== []) {
-            $dates = array_filter(array_map(fn (array $r) => $r['date'] ?? substr((string) ($r['starts_at'] ?? ''), 0, 10), $incoming));
-            if ($dates !== []) {
-                $min = min($dates);
-                $max = max($dates);
-                $existing = array_values(array_filter($existing, function (array $r) use ($min, $max): bool {
-                    $d = $r['date'] ?? substr((string) ($r['starts_at'] ?? ''), 0, 10);
-
-                    return ! $d || $d < $min || $d > $max;
-                }));
-            }
+        $key = $collection === 'shift-definitions' ? 'code' : 'uid';
+        $existing = $this->all($collection);
+        $map = [];
+        foreach ($existing as $row) {
+            $map[(string) $row[$key]] = $row;
         }
 
-        $by = [];
-        foreach ($existing as $r) {
-            $by[$r['uid']] = $r;
-        }
-
-        foreach ($incoming as $r) {
-            if ($strategy === 'append' && isset($by[$r['uid']])) {
+        foreach ($incoming as $row) {
+            $row = $this->normalize($collection, $row);
+            $id = (string) $row[$key];
+            if ($strategy === 'append' && isset($map[$id])) {
                 continue;
-            }$by[$r['uid']] = $r;
+            }$map[$id] = $row;
         }
 
-        $merged = array_values($by);
-        usort($merged, fn (array $a, array $b): int => strcmp((string) ($a['date'] ?? $a['starts_at'] ?? ''), (string) ($b['date'] ?? $b['starts_at'] ?? '')));
-        $this->replace($collection, $merged);
+        $rows = array_values($map);
+        $this->replace($collection, $rows);
 
-        return $merged;
+        return $rows;
     }
 
-    private function normalize(array $record): array
+    private function normalize(string $collection, array $row): array
     {
-        $record['uid'] = (string) ($record['uid'] ?? Str::uuid().'@rimba');
-        $record['attributes'] = is_array($record['attributes'] ?? null) ? $record['attributes'] : [];
-
-        return $record;
-    }
-
-    private function assertUniqueUids(array $records): void
-    {
-        $uids = array_column($records, 'uid');
-        if (count($uids) !== count(array_unique($uids))) {
-            throw new RuntimeException('Duplicate UID found.');
+        if ($collection === 'shift-definitions') {
+            $row['code'] = (string) ($row['code'] ?? '');
+        } else {
+            $row['uid'] = (string) ($row['uid'] ?? Str::uuid().'@rimba');
         }
+
+        $row['attributes'] = is_array($row['attributes'] ?? null) ? $row['attributes'] : [];
+
+        return $row;
     }
 
     private function disk(): FilesystemAdapter
     {
-        return Storage::disk((string) config('bites.disk', 'public'));
+        return Storage::disk((string) config('bites.time.disk', 'public'));
     }
 
     private function path(string $collection): string
     {
-        if (! in_array($collection, ['holidays', 'workdays'], true)) {
-            throw new RuntimeException('Unsupported time collection.');
+        if (! in_array($collection, self::COLLECTIONS, true)) {
+            throw new RuntimeException("Unsupported collection: {$collection}");
         }
 
-        return trim((string) config('bites.directory', 'time'), '/').'/'.$collection.'.json';
+        return trim((string) config('bites.time.directory', 'time'), '/').'/'.$collection.'.json';
     }
 }
