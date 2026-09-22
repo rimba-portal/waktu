@@ -43,7 +43,8 @@ abstract class ManageJsonCollection extends Page
                     ->collapsible()
                     ->cloneable()
                     ->reorderable()
-                    ->itemLabel(fn (array $s): ?string => $s['title'] ?? $s['name'] ?? $s['uid'] ?? $s['code'] ?? null)
+                    // CHANGE THIS LINE: Use $state instead of $s
+                    ->itemLabel(fn (?array $state): ?string => $state['title'] ?? $state['name'] ?? $state['uid'] ?? $state['code'] ?? null)
                     ->defaultItems(0),
             ]);
     }

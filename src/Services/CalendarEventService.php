@@ -21,6 +21,7 @@ final class CalendarEventService
                 'start' => $h['date'],
                 'allDay' => true,
                 'color' => $h['color'] ?? '#f97316',
+
                 'extendedProps' => [
                     'kind' => 'holiday',
                     'type' => $h['type'] ?? null,
@@ -29,6 +30,7 @@ final class CalendarEventService
             ->values()
             ->all();
         $role = $this->shiftGeneratorService->roleFor($user);
+
         $shifts = $role ? $this->shiftGeneratorService->eventsForRole($role, $from, $to) : [];
 
         return [...$holidays, ...$shifts];

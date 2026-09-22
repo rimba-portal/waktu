@@ -15,8 +15,13 @@ final class ShiftGeneratorService
 
     public function roleFor(Authenticatable $user): ?string
     {
+        $staff = $user->staff ?? null;
+        if (! $staff) {
+            return null;
+        }
+
         $prefix = (string) config('bites.time.role_prefix', 'shift_code.');
-        $names = method_exists($user, 'getRoleNames') ? $user->getRoleNames() : collect();
+        $names = method_exists($staff, 'getRoleNames') ? $staff->getRoleNames() : collect();
 
         return $names->first(fn (string $name): bool => str_starts_with($name, $prefix));
     }
@@ -69,11 +74,9 @@ final class ShiftGeneratorService
         }
 
         return $this->timedEvent(
-            $d['name'],
             $date,
             $d['start_time'],
             $d['end_time'],
-            $d['color'] ?? '#3b82f6',
             $role,
             $d['code']
         );
@@ -99,11 +102,9 @@ final class ShiftGeneratorService
         }
 
         return $this->timedEvent(
-            $shift['name'] ?? $code,
             $date,
             $shift['start_time'],
             $shift['end_time'],
-            $shift['color'] ?? ($d['color'] ?? '#3b82f6'),
             $role,
             $code
         );
@@ -124,17 +125,15 @@ final class ShiftGeneratorService
         }
 
         return $this->timedEvent(
-            $o['title'] ?? $shift['name'] ?? $definition['name'] ?? 'Shift',
             $date,
             $start,
             $end,
-            $o['color'] ?? $shift['color'] ?? $definition['color'] ?? '#3b82f6',
             $role,
             $code ?? $definition['code']
         );
     }
 
-    private function timedEvent(string $title, CarbonImmutable $date, string $start, string $end, string $color, string $role, string $code): array
+    private function timedEvent(CarbonImmutable $date, string $start, string $end, string $role, string $code): array
     {
         $tz = (string) config('bites.time.timezone');
         $s = $date->setTimezone($tz)->setTimeFromTimeString($start);
@@ -145,16 +144,37 @@ final class ShiftGeneratorService
 
         return [
             'id' => $role.'-'.$date->format('Ymd'),
-            'title' => $title,
+            // 'title' => $title,
             'start' => $s->toIso8601String(),
-            'end' => $e->toIso8601String(),
-            'allDay' => false,
-            'color' => $color,
+            // 'end' => $e->toIso8601String(),
+            'label' => '<svg height="200px" width="200px" version="1.1" id="sun" xmlns="http://w3.org" xmlns:xlink="http://w3.org" viewBox="0 0 1010 1010" enable-background="new 0 0 1010 1010" xml:space="preserve" fill="#000000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <g id="sun-sun"> <g id="sun-fill"> <path fill="#ffe8c2" d="M826.1182,505c0,177.335-143.7831,321.1006-321.084,321.1006 C327.7417,826.1006,183.916,682.335,183.916,505c0-177.3184,143.8257-321.1182,321.1182-321.1182 C682.335,183.8818,826.1182,327.6816,826.1182,505z"></path> </g> <g id="sun-line"> <g> <path fill="#37474F" d="M505.0342,833.0557c-180.9146,0-328.0899-147.1671-328.0899-328.0557 c0-180.9233,147.1753-328.0903,328.0899-328.0903c180.8896,0,328.039,147.167,328.039,328.0903 C833.0732,685.8887,685.9238,833.0557,505.0342,833.0557L505.0342,833.0557z M505.0342,212.9785 c-161.0181,0-292.0215,131.0117-292.0215,292.0215c0,160.9922,131.0034,291.9873,292.0215,291.9873 c160.9931,0,291.9697-130.9951,291.9697-291.9873C797.0039,343.9902,666.0273,212.9785,505.0342,212.9785L505.0342,212.9785z"></path> </g> <g> <g> <polygon fill="#37474F" points="1010,523.043 914.5986,523.043 914.5986,486.957 1010,486.957 1010,523.043 "></polygon> </g> <g> <polygon fill="#37474F" points="95.3936,523.043 0,523.043 0,486.957 95.3936,486.957 95.3936,523.043 "></polygon> </g> <g> <polygon fill="#37474F" points="524.999,95.3506 488.9385,95.3506 488.9385,0 524.999,0 524.999,95.3506 "></polygon> </g> <g> <polygon fill="#37474F" points="204.9355,244.8813 138.1455,178.0322 163.6709,152.5234 230.4609,219.373 204.9355,244.8813 "></polygon> </g> <g> <polygon fill="#37474F" points="805.1162,244.8813 779.6074,219.373 846.3711,152.5234 871.8809,178.0322 805.1162,244.8813 "></polygon> </g> <g> <polygon fill="#37474F" points="524.999,1010 488.9385,1010 488.9385,914.6152 524.999,914.6152 524.999,1010 "></polygon> </g> <g> <polygon fill="#37474F" points="163.6709,857.459 138.1455,831.9512 204.9355,765.1016 230.4609,790.6094 163.6709,857.459 "></polygon> </g> <g> <polygon fill="#37474F" points="846.3711,857.459 779.6074,790.6094 805.1162,765.1016 871.8809,831.9512 846.3711,857.459 "></polygon> </g> </g> </g> </g> </g></svg>',
+            'allDay' => true,
+            'color' => $this->getShiftColor($s),
+            'display' => 'background',
             'extendedProps' => [
                 'kind' => 'shift',
                 'role' => $role,
                 'shift_code' => $code,
             ],
         ];
+    }
+
+    private function getShiftColor(CarbonImmutable $startTime): string
+    {
+        $startHour = (int) $startTime->format('G');
+
+        if ($startHour >= 6 && $startHour < 12) {
+            return 'success'; // Morning (Standard blue/cyan palette)
+        }
+
+        if ($startHour >= 12 && $startHour < 16) {
+            return 'warning'; // Afternoon (Standard amber/yellow palette)
+        }
+
+        if ($startHour >= 16 && $startHour < 20) {
+            return 'danger'; // Evening (Standard red palette)
+        }
+
+        return 'gray'; // Night (Standard slate/gray palette)
     }
 }

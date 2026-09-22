@@ -13,12 +13,11 @@ use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Utilities\Get;
-use Filament\Support\Icons\Heroicon;
 use UnitEnum;
 
 final class ManageShiftDefinitions extends ManageJsonCollection
 {
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClock;
+    protected static string|BackedEnum|null $navigationIcon = 'bites-shift';
 
     protected static string|UnitEnum|null $navigationGroup = 'Time';
 
