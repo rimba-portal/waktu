@@ -11,10 +11,9 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\Storage;
 use Rimba\Time\Services\CalendarEventService;
 use Rimba\Time\Services\ShiftGeneratorService;
-use UnitEnum;
+use Rimba\Time\Services\TimeJsonRepository;
 
 final class Calendar extends Page implements HasTable
 {
@@ -22,11 +21,11 @@ final class Calendar extends Page implements HasTable
 
     protected static string|BackedEnum|null $navigationIcon = 'bites-calendar';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Todo';
-
     protected static ?string $navigationLabel = 'Calendar';
 
     protected static ?string $title = 'Calendar';
+
+    protected static ?string $slug = 'calendar';
 
     protected string $view = 'bites::calendar';
 
@@ -34,54 +33,141 @@ final class Calendar extends Page implements HasTable
 
     public ?string $shiftRole = null;
 
+    /*
+    |--------------------------------------------------------------------------
+    | Navigation
+    |--------------------------------------------------------------------------
+    */
+
     public static function shouldRegisterNavigation(): bool
     {
         return false;
     }
 
-    public function mount(CalendarEventService $events, ShiftGeneratorService $generator): void
-    {
+    /*
+    |--------------------------------------------------------------------------
+    | Authorization
+    |--------------------------------------------------------------------------
+    */
 
+    public static function canAccess(): bool
+    {
+        return auth()->check();
+    }
+
+    public static function canManage(): bool
+    {
         $user = auth()->user();
-        $this->shiftRole = $user ? $generator->roleFor($user) : null;
+
+        if (! $user) {
+            return false;
+        }
+
+        return $user->can('waktu.manage')
+            || $user->can('waktu.holidays')
+            || $user->can('waktu.shift-definitions')
+            || $user->can('waktu.overrides');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Page
+    |--------------------------------------------------------------------------
+    */
+
+    public function mount(
+        CalendarEventService $events,
+        ShiftGeneratorService $generator,
+    ): void {
+        $user = auth()->user();
+
         if (! $user) {
             return;
         }
 
-        $tz = (string) config('bites.time.timezone');
-        $from = CarbonImmutable::now($tz)->subDays((int) config('bites.time.calendar_past_days', 60));
-        $to = CarbonImmutable::now($tz)->addDays((int) config('bites.time.calendar_future_days', 180));
-        $this->events = $events->forUser($user, $from, $to);
+        $role = $generator->roleFor($user);
+
+        $this->shiftRole = $role
+            ? $this->displayShiftRole($role)
+            : null;
+
+        $timezone = (string) config(
+            'bites.time.timezone',
+            'Asia/Kuala_Lumpur',
+        );
+
+        $from = CarbonImmutable::now($timezone)
+            ->subDays(
+                (int) config(
+                    'bites.time.calendar_past_days',
+                    45,
+                )
+            );
+
+        $to = CarbonImmutable::now($timezone)
+            ->addDays(
+                (int) config(
+                    'bites.time.calendar_future_days',
+                    120,
+                )
+            );
+
+        $this->events = $events->forUser(
+            $user,
+            $from,
+            $to,
+        );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Holidays Table
+    |--------------------------------------------------------------------------
+    */
 
     public function table(Table $table): Table
     {
         return $table
-            ->records(function (): array {
-                // Read from storage/app/public/time/holidays.json
-                if (! Storage::disk('public')->exists('time/holidays.json')) {
-                    return [];
-                }
-
-                $json = Storage::disk('public')->get('time/holidays.json');
-                $data = json_decode($json, true);
-
-                // Ensure data returns as a flat array of objects/records
-                return is_array($data) ? $data : [];
-            })
+            ->records(
+                fn (): array => app(TimeJsonRepository::class)
+                    ->all('holidays')
+            )
+            ->defaultSort('date')
             ->columns([
-                // Change these keys ('name', 'date') to match the keys inside your holidays.json file
                 TextColumn::make('title')
                     ->label('Event')
                     ->searchable(),
 
                 TextColumn::make('date')
-                    ->label('Date')
-                    ->date()
+                    ->date('d M Y')
                     ->sortable(),
+
                 TextColumn::make('type')
-                    ->label('Type')
+                    ->badge()
                     ->searchable(),
-            ]);
+
+                TextColumn::make('description')
+                    ->placeholder('—')
+                    ->wrap(),
+            ])
+            ->paginated(false);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Shift Role
+    |--------------------------------------------------------------------------
+    */
+
+    private function displayShiftRole(string $role): string
+    {
+        $prefix = (string) config(
+            'bites.time.role_prefix',
+            'staff◇shift_code◇',
+        );
+
+        return str_starts_with($role, $prefix)
+            ? substr($role, strlen($prefix))
+            : $role;
     }
 }

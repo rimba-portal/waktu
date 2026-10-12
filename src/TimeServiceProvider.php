@@ -7,9 +7,9 @@ namespace Rimba\Time;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Support\Facades\FilamentView;
+use Filament\Tables\View\TablesRenderHook;
 use Filament\View\PanelsRenderHook;
 use Rimba\Base\Services\BitesServiceProvider;
-use Rimba\Floorplan\Http\UI\Staff\Pages\FloorPlan;
 use Rimba\Time\Http\UI\Staff\Pages\Calendar;
 
 class TimeServiceProvider extends BitesServiceProvider
@@ -22,10 +22,12 @@ class TimeServiceProvider extends BitesServiceProvider
 
     protected function bootPackage(): void
     {
-        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+        $this->loadMigrationsFrom(
+            __DIR__.'/../database/migrations'
+        );
 
-        $this->registerTimeTableHooks();
-        $this->registerTimeShortcut();
+        $this->registerCalendarTableHooks();
+        $this->registerCalendarShortcut();
     }
 
     protected function registerPackage(): void
@@ -35,71 +37,71 @@ class TimeServiceProvider extends BitesServiceProvider
 
     /*
     |--------------------------------------------------------------------------
-    | Floor Plan Table Hooks
+    | Calendar Table Hooks
     |--------------------------------------------------------------------------
     */
-    protected function registerTimeTableHooks(): void
+
+    protected function registerCalendarTableHooks(): void
     {
         /*
-         * Floor Plan filters: All | With Plans
+         * Calendar filters / tabs.
          */
         FilamentView::registerRenderHook(
             TablesRenderHook::TOOLBAR_START,
             fn (): string => view('bites::time-tabs')->render(),
-            scopes: [FloorPlan::class],
+            scopes: [Calendar::class],
         );
+
         /*
-         * Location management shortcut.
+         * Time-management shortcut.
          *
-         * Only shown when the user may create or edit locations. All record maintenance is delegated to the Team panel.
+         * Staff view remains read-only.
+         * Maintenance is delegated to the Team panel.
          */
         FilamentView::registerRenderHook(
             TablesRenderHook::TOOLBAR_SEARCH_AFTER,
             fn (): string => $this->renderManageTimeAction(),
-            scopes: [FloorPlan::class],
+            scopes: [Calendar::class],
         );
     }
 
     protected function renderManageTimeAction(): string
     {
-        auth()->user();
         if (! Calendar::canManage()) {
             return '';
         }
 
-        return Action::make('manageLocations')
-            ->label('Edit')->icon('heroicon-o-pencil-square') // ->badge()
-            // ->url(\Rimba\Floorplan\Http\UI\Team\Resources\Locations\LocationResource::getUrl('index', panel: 'team',))
+        return Action::make('manageTime')
+            ->label('Edit')
+            ->icon('heroicon-o-pencil-square')
+            ->url(
+                route('filament.team.pages.manage-holidays')
+            )
             ->toHtml();
     }
 
     /*
-       |--------------------------------------------------------------------------
-       | Global Floor Plan Shortcut
-       |--------------------------------------------------------------------------
-       */
-    protected function registerTimeShortcut(): void
+    |--------------------------------------------------------------------------
+    | Global Calendar Shortcut
+    |--------------------------------------------------------------------------
+    */
+
+    protected function registerCalendarShortcut(): void
     {
         FilamentView::registerRenderHook(
             PanelsRenderHook::GLOBAL_SEARCH_BEFORE,
             function (): string {
-                // Check if the current panel is 'lobby'. If it is, return an empty string to render nothing.
                 if (Filament::getCurrentPanel()?->getId() === 'lobby') {
                     return '';
                 }
 
-                /*
-                 * Do not expose the shortcut when the user cannot
-                * access the FloorPlan page.
-                */
                 if (! Calendar::canAccess()) {
                     return '';
                 }
 
-                return Action::make('Calendar')
+                return Action::make('calendar')
                     ->label('Calendar')
                     ->iconButton()
-                    ->badge()
                     ->icon('bites-calendar')
                     ->url(route('filament.staff.pages.calendar'))
                     ->toHtml();
