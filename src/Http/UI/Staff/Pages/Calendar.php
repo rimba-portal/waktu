@@ -2,172 +2,111 @@
 
 declare(strict_types=1);
 
-namespace Rimba\Time\Http\UI\Staff\Pages;
+namespace Rimba\Time;
 
-use BackedEnum;
-use Carbon\CarbonImmutable;
-use Filament\Pages\Page;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
-use Rimba\Time\Services\CalendarEventService;
-use Rimba\Time\Services\ShiftGeneratorService;
-use Rimba\Time\Services\TimeJsonRepository;
+use Filament\Actions\Action;
+use Filament\Facades\Filament;
+use Filament\Support\Facades\FilamentView;
+use Filament\Tables\View\TablesRenderHook;
+use Filament\View\PanelsRenderHook;
+use Rimba\Base\Services\BitesServiceProvider;
+use Rimba\Time\Http\UI\Staff\Pages\Calendar;
 
-final class Calendar extends Page implements HasTable
+class TimeServiceProvider extends BitesServiceProvider
 {
-    use InteractsWithTable;
+    protected string $configFile = __DIR__.'/../config/bites.php';
 
-    protected static string|BackedEnum|null $navigationIcon = 'bites-calendar';
+    protected string $viewsPath = __DIR__.'/../resources/views';
 
-    protected static ?string $navigationLabel = 'Calendar';
+    protected string $iconsPath = __DIR__.'/../resources/svg';
 
-    protected static ?string $title = 'Calendar';
-
-    protected static ?string $slug = 'calendar';
-
-    protected string $view = 'bites::calendar';
-
-    public array $events = [];
-
-    public ?string $shiftRole = null;
-
-    /*
-    |--------------------------------------------------------------------------
-    | Navigation
-    |--------------------------------------------------------------------------
-    */
-
-    public static function shouldRegisterNavigation(): bool
+    protected function bootPackage(): void
     {
-        return false;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Authorization
-    |--------------------------------------------------------------------------
-    */
-
-    public static function canAccess(): bool
-    {
-        return auth()->check();
-    }
-
-    public static function canManage(): bool
-    {
-        $user = auth()->user();
-
-        if (! $user) {
-            return false;
-        }
-
-        return $user->can('waktu.manage')
-            || $user->can('waktu.holidays')
-            || $user->can('waktu.shift-definitions')
-            || $user->can('waktu.overrides');
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Page
-    |--------------------------------------------------------------------------
-    */
-
-    public function mount(
-        CalendarEventService $events,
-        ShiftGeneratorService $generator,
-    ): void {
-        $user = auth()->user();
-
-        if (! $user) {
-            return;
-        }
-
-        $role = $generator->roleFor($user);
-
-        $this->shiftRole = $role
-            ? $this->displayShiftRole($role)
-            : null;
-
-        $timezone = (string) config(
-            'bites.time.timezone',
-            'Asia/Kuala_Lumpur',
+        $this->loadMigrationsFrom(
+            __DIR__.'/../database/migrations'
         );
 
-        $from = CarbonImmutable::now($timezone)
-            ->subDays(
-                (int) config(
-                    'bites.time.calendar_past_days',
-                    45,
-                )
-            );
+        $this->registerCalendarTableHooks();
+        $this->registerCalendarShortcut();
+    }
 
-        $to = CarbonImmutable::now($timezone)
-            ->addDays(
-                (int) config(
-                    'bites.time.calendar_future_days',
-                    120,
-                )
-            );
+    protected function registerPackage(): void
+    {
+        //
+    }
 
-        $this->events = $events->forUser(
-            $user,
-            $from,
-            $to,
+    /*
+    |--------------------------------------------------------------------------
+    | Calendar Table Hooks
+    |--------------------------------------------------------------------------
+    */
+
+    protected function registerCalendarTableHooks(): void
+    {
+        /*
+         * Calendar filters / tabs.
+         */
+        // FilamentView::registerRenderHook(
+        //     TablesRenderHook::TOOLBAR_START,
+        //     fn (): string => view('bites::time-tabs')->render(),
+        //     scopes: [Calendar::class],
+        // );
+
+        /*
+         * Time-management shortcut.
+         *
+         * Staff view remains read-only.
+         * Maintenance is delegated to the Team panel.
+         */
+        FilamentView::registerRenderHook(
+            TablesRenderHook::TOOLBAR_SEARCH_AFTER,
+            fn (): string => $this->renderManageTimeAction(),
+            scopes: [Calendar::class],
         );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Holidays Table
-    |--------------------------------------------------------------------------
-    */
-
-    public function table(Table $table): Table
+    protected function renderManageTimeAction(): string
     {
-        return $table
-            ->records(
-                fn (): array => app(TimeJsonRepository::class)
-                    ->all('holidays')
+        if (! Calendar::canManage()) {
+            // return '';
+        }
+
+        return Action::make('manageTime')
+            ->label('Edit')
+            ->icon('heroicon-o-pencil-square')
+            ->url(
+                route('filament.team.pages.manage-holidays')
             )
-            ->defaultSort('date')
-            ->columns([
-                TextColumn::make('title')
-                    ->label('Event')
-                    ->searchable(),
-
-                TextColumn::make('date')
-                    ->date('d M Y')
-                    ->sortable(),
-
-                TextColumn::make('type')
-                    ->badge()
-                    ->searchable(),
-
-                TextColumn::make('description')
-                    ->placeholder('—')
-                    ->wrap(),
-            ])
-            ->paginated(false);
+            ->toHtml();
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Shift Role
+    | Global Calendar Shortcut
     |--------------------------------------------------------------------------
     */
 
-    private function displayShiftRole(string $role): string
+    protected function registerCalendarShortcut(): void
     {
-        $prefix = (string) config(
-            'bites.time.role_prefix',
-            'staff◇shift_code◇',
-        );
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::GLOBAL_SEARCH_BEFORE,
+            function (): string {
+                if (Filament::getCurrentPanel()?->getId() === 'lobby') {
+                    return '';
+                }
 
-        return str_starts_with($role, $prefix)
-            ? substr($role, strlen($prefix))
-            : $role;
+                if (! Calendar::canAccess()) {
+                    return '';
+                }
+
+                return Action::make('calendar')
+                    ->label('Calendar')
+                    ->iconButton()
+                    ->badge()
+                    ->icon('bites-calendar')
+                    ->url(route('filament.staff.pages.calendar'))
+                    ->toHtml();
+            },
+        );
     }
 }

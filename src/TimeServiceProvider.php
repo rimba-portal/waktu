@@ -46,11 +46,11 @@ class TimeServiceProvider extends BitesServiceProvider
         /*
          * Calendar filters / tabs.
          */
-        FilamentView::registerRenderHook(
-            TablesRenderHook::TOOLBAR_START,
-            fn (): string => view('bites::time-tabs')->render(),
-            scopes: [Calendar::class],
-        );
+        // FilamentView::registerRenderHook(
+        //     TablesRenderHook::TOOLBAR_START,
+        //     fn (): string => view('bites::time-tabs')->render(),
+        //     scopes: [Calendar::class],
+        // );
 
         /*
          * Time-management shortcut.
@@ -68,7 +68,7 @@ class TimeServiceProvider extends BitesServiceProvider
     protected function renderManageTimeAction(): string
     {
         if (! Calendar::canManage()) {
-            return '';
+            // return '';
         }
 
         return Action::make('manageTime')
@@ -102,6 +102,7 @@ class TimeServiceProvider extends BitesServiceProvider
                 return Action::make('calendar')
                     ->label('Calendar')
                     ->iconButton()
+                    ->badge()
                     ->icon('bites-calendar')
                     ->url(route('filament.staff.pages.calendar'))
                     ->toHtml();
