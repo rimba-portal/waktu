@@ -22,10 +22,6 @@ class TimeServiceProvider extends BitesServiceProvider
 
     protected function bootPackage(): void
     {
-        $this->loadMigrationsFrom(
-            __DIR__.'/../database/migrations'
-        );
-
         $this->registerCalendarTableHooks();
         $this->registerCalendarShortcut();
     }
@@ -35,29 +31,8 @@ class TimeServiceProvider extends BitesServiceProvider
         //
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Calendar Table Hooks
-    |--------------------------------------------------------------------------
-    */
-
     protected function registerCalendarTableHooks(): void
     {
-        /*
-         * Calendar filters / tabs.
-         */
-        // FilamentView::registerRenderHook(
-        //     TablesRenderHook::TOOLBAR_START,
-        //     fn (): string => view('bites::time-tabs')->render(),
-        //     scopes: [Calendar::class],
-        // );
-
-        /*
-         * Time-management shortcut.
-         *
-         * Staff view remains read-only.
-         * Maintenance is delegated to the Team panel.
-         */
         FilamentView::registerRenderHook(
             TablesRenderHook::TOOLBAR_SEARCH_AFTER,
             fn (): string => $this->renderManageTimeAction(),
@@ -68,23 +43,15 @@ class TimeServiceProvider extends BitesServiceProvider
     protected function renderManageTimeAction(): string
     {
         if (! Calendar::canManage()) {
-            // return '';
+            return '';
         }
 
         return Action::make('manageTime')
             ->label('Edit')
             ->icon('heroicon-o-pencil-square')
-            ->url(
-                route('filament.team.pages.manage-holidays')
-            )
+            ->url(route('filament.team.pages.manage-holidays'))
             ->toHtml();
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Global Calendar Shortcut
-    |--------------------------------------------------------------------------
-    */
 
     protected function registerCalendarShortcut(): void
     {

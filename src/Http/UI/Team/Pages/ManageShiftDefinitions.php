@@ -61,12 +61,10 @@ final class ManageShiftDefinitions extends ManageJsonCollection
                                         'Unique code used for shift-role resolution.',
                                     )
                                     ->required(),
-
                                 TextInput::make('name')
                                     ->label('Name')
                                     ->placeholder('Normal Hours')
                                     ->required(),
-
                                 Select::make('type')
                                     ->label('Schedule type')
                                     ->options([
@@ -76,20 +74,18 @@ final class ManageShiftDefinitions extends ManageJsonCollection
                                     ->native(false)
                                     ->live()
                                     ->required(),
-
                                 Toggle::make('holiday_observed')
                                     ->label('Observe holidays')
                                     ->helperText(
                                         'Do not generate a shift when an applicable holiday exists.',
                                     )
                                     ->default(true),
-
                                 ColorPicker::make('color')
-                                    ->label('Default color'),
+                                    ->label('Calendar color')
+                                    ->required(fn (Get $get): bool => $get('type') === 'fixed'),
                             ])
                             ->columns(2)
                             ->columnSpanFull(),
-
                         Section::make('Fixed Weekly Schedule')
                             ->description(
                                 'Choose the recurring working days and daily hours.',
@@ -119,14 +115,12 @@ final class ManageShiftDefinitions extends ManageJsonCollection
                                     ->bulkToggleable()
                                     ->required()
                                     ->columnSpanFull(),
-
                                 TimePicker::make('start_time')
                                     ->label('Start time')
                                     ->seconds(false)
                                     ->required(
                                         fn (Get $get): bool => $get('type') === 'fixed',
                                     ),
-
                                 TimePicker::make('end_time')
                                     ->label('End time')
                                     ->seconds(false)
@@ -136,7 +130,6 @@ final class ManageShiftDefinitions extends ManageJsonCollection
                             ])
                             ->columns(2)
                             ->columnSpanFull(),
-
                         Section::make('Cycle Configuration')
                             ->description(
                                 'Set the cycle origin and sequence of shift codes.',
@@ -156,7 +149,6 @@ final class ManageShiftDefinitions extends ManageJsonCollection
                                     ->required(
                                         fn (Get $get): bool => $get('type') === 'cycle',
                                     ),
-
                                 TextInput::make('offset')
                                     ->label('Cycle offset')
                                     ->numeric()
@@ -168,7 +160,6 @@ final class ManageShiftDefinitions extends ManageJsonCollection
                                     ->required(
                                         fn (Get $get): bool => $get('type') === 'cycle',
                                     ),
-
                                 TagsInput::make('cycle')
                                     ->label('Cycle sequence')
                                     ->placeholder('Add a shift code')
@@ -197,18 +188,13 @@ final class ManageShiftDefinitions extends ManageJsonCollection
                                     ->table([
                                         TableColumn::make('Code')
                                             ->width('90px'),
-
                                         TableColumn::make('Name'),
-
                                         TableColumn::make('Start')
                                             ->width('140px'),
-
                                         TableColumn::make('End')
                                             ->width('140px'),
-
                                         TableColumn::make('Working')
                                             ->width('100px'),
-
                                         TableColumn::make('Color')
                                             ->width('100px'),
                                     ])
@@ -217,33 +203,28 @@ final class ManageShiftDefinitions extends ManageJsonCollection
                                             ->hiddenLabel()
                                             ->placeholder('M')
                                             ->required(),
-
                                         TextInput::make('name')
                                             ->hiddenLabel()
                                             ->placeholder('Morning')
                                             ->required(),
-
                                         TimePicker::make('start_time')
                                             ->hiddenLabel()
                                             ->seconds(false)
-                                            ->disabled(
-                                                fn (Get $get): bool => ! $get('working'),
-                                            ),
-
+                                            ->disabled(fn (Get $get): bool => ! $get('working'))
+                                            ->required(fn (Get $get): bool => (bool) $get('working')),
                                         TimePicker::make('end_time')
                                             ->hiddenLabel()
                                             ->seconds(false)
-                                            ->disabled(
-                                                fn (Get $get): bool => ! $get('working'),
-                                            ),
-
+                                            ->disabled(fn (Get $get): bool => ! $get('working'))
+                                            ->required(fn (Get $get): bool => (bool) $get('working')),
                                         Toggle::make('working')
                                             ->hiddenLabel()
                                             ->live()
                                             ->default(true),
-
                                         ColorPicker::make('color')
-                                            ->hiddenLabel(),
+                                            ->hiddenLabel()
+                                            ->required(fn (Get $get): bool => (bool) $get('working')),
+
                                     ])
                                     ->itemLabel(
                                         fn (?array $state): string => $this->shiftLabel($state),

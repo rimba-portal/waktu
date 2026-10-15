@@ -2,111 +2,119 @@
 
 declare(strict_types=1);
 
-namespace Rimba\Time;
+namespace Rimba\Time\Http\UI\Staff\Pages;
 
-use Filament\Actions\Action;
-use Filament\Facades\Filament;
-use Filament\Support\Facades\FilamentView;
-use Filament\Tables\View\TablesRenderHook;
-use Filament\View\PanelsRenderHook;
-use Rimba\Base\Services\BitesServiceProvider;
-use Rimba\Time\Http\UI\Staff\Pages\Calendar;
+use BackedEnum;
+use Carbon\CarbonImmutable;
+use Filament\Pages\Page;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Table;
+use Rimba\Time\Enums\EventType;
+use Rimba\Time\Services\CalendarEventService;
+use Rimba\Time\Services\ShiftGeneratorService;
+use Rimba\Time\Services\TimeJsonRepository;
 
-class TimeServiceProvider extends BitesServiceProvider
+final class Calendar extends Page implements HasTable
 {
-    protected string $configFile = __DIR__.'/../config/bites.php';
+    use InteractsWithTable;
 
-    protected string $viewsPath = __DIR__.'/../resources/views';
+    protected static string|BackedEnum|null $navigationIcon = 'bites-calendar';
 
-    protected string $iconsPath = __DIR__.'/../resources/svg';
+    protected static ?string $navigationLabel = 'Calendar';
 
-    protected function bootPackage(): void
+    protected static ?string $title = 'Calendar';
+
+    protected static ?string $slug = 'calendar';
+
+    protected string $view = 'bites::calendar';
+
+    public array $events = [];
+
+    public ?string $shiftCode = null;
+
+    public static function shouldRegisterNavigation(): bool
     {
-        $this->loadMigrationsFrom(
-            __DIR__.'/../database/migrations'
-        );
-
-        $this->registerCalendarTableHooks();
-        $this->registerCalendarShortcut();
+        return false;
     }
 
-    protected function registerPackage(): void
+    public static function canAccess(): bool
     {
-        //
+        return auth()->check();
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Calendar Table Hooks
-    |--------------------------------------------------------------------------
-    */
-
-    protected function registerCalendarTableHooks(): void
+    public static function canManage(): bool
     {
-        /*
-         * Calendar filters / tabs.
-         */
-        // FilamentView::registerRenderHook(
-        //     TablesRenderHook::TOOLBAR_START,
-        //     fn (): string => view('bites::time-tabs')->render(),
-        //     scopes: [Calendar::class],
-        // );
+        $user = auth()->user();
 
-        /*
-         * Time-management shortcut.
-         *
-         * Staff view remains read-only.
-         * Maintenance is delegated to the Team panel.
-         */
-        FilamentView::registerRenderHook(
-            TablesRenderHook::TOOLBAR_SEARCH_AFTER,
-            fn (): string => $this->renderManageTimeAction(),
-            scopes: [Calendar::class],
-        );
+        return $user?->can('waktu.manage')
+            || $user?->can('waktu.holidays')
+            || $user?->can('waktu.shift-definitions')
+            || $user?->can('waktu.overrides');
     }
 
-    protected function renderManageTimeAction(): string
-    {
-        if (! Calendar::canManage()) {
-            // return '';
+    public function mount(
+        CalendarEventService $calendarEvents,
+        ShiftGeneratorService $shiftGenerator,
+    ): void {
+        $user = auth()->user();
+
+        if (! $user) {
+            return;
         }
 
-        return Action::make('manageTime')
-            ->label('Edit')
-            ->icon('heroicon-o-pencil-square')
-            ->url(
-                route('filament.team.pages.manage-holidays')
-            )
-            ->toHtml();
+        $role = $shiftGenerator->roleFor($user);
+        $this->shiftCode = $role
+            ? $shiftGenerator->codeFromRole($role)
+            : null;
+
+        $timezone = (string) config(
+            'bites.time.timezone',
+            'Asia/Kuala_Lumpur',
+        );
+
+        $now = CarbonImmutable::now($timezone);
+
+        $from = $now->subDays(
+            (int) config('bites.time.calendar_past_days', 45),
+        );
+
+        $to = $now->addDays(
+            (int) config('bites.time.calendar_future_days', 120),
+        );
+
+        $this->events = $calendarEvents->forUser($user, $from, $to);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Global Calendar Shortcut
-    |--------------------------------------------------------------------------
-    */
-
-    protected function registerCalendarShortcut(): void
+    public function table(Table $table): Table
     {
-        FilamentView::registerRenderHook(
-            PanelsRenderHook::GLOBAL_SEARCH_BEFORE,
-            function (): string {
-                if (Filament::getCurrentPanel()?->getId() === 'lobby') {
-                    return '';
-                }
+        return $table
+            ->records(fn (): array => app(TimeJsonRepository::class)->all('holidays'))
+            ->defaultSort('date')
+            ->columns([
+                TextColumn::make('title')
+                    ->label('Event')
+                    ->searchable(),
 
-                if (! Calendar::canAccess()) {
-                    return '';
-                }
+                TextColumn::make('date')
+                    ->date('d M Y')
+                    ->sortable(),
 
-                return Action::make('calendar')
-                    ->label('Calendar')
-                    ->iconButton()
+                TextColumn::make('type')
                     ->badge()
-                    ->icon('bites-calendar')
-                    ->url(route('filament.staff.pages.calendar'))
-                    ->toHtml();
-            },
-        );
+                    ->formatStateUsing(
+                        fn (string $state): string => EventType::tryFrom($state)?->getLabel() ?? $state,
+                    )
+                    ->color(
+                        fn (string $state): string|array|null => EventType::tryFrom($state)?->getColor(),
+                    )
+                    ->searchable(),
+
+                TextColumn::make('description')
+                    ->placeholder('—')
+                    ->wrap(),
+            ])
+            ->paginated(false);
     }
 }
