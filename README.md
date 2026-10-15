@@ -7,13 +7,15 @@ rimba/waktu
 │   ├── admin/pages/manage-json-collection.blade.php
 │   └── staff/pages/calendar.blade.php
 ├── src/
-│   ├── Http/UI/Admin/Pages/
+│   ├── Enums/
+│   │   └── EventType.php
+│   ├── Http/UI/Staff/Pages/
+│   │   └── Calendar.php
+│   ├── Http/UI/Team/Pages/
 │   │   ├── ManageJsonCollection.php
 │   │   ├── ManageHolidays.php
 │   │   ├── ManageShiftDefinitions.php
 │   │   └── ManageOverrides.php
-│   ├── Http/UI/Staff/Pages/
-│   │   └── Calendar.php
 │   ├── Services/
 │   │   ├── TimeJsonRepository.php
 │   │   ├── CalendarConverterService.php
