@@ -1,19 +1,12 @@
 <x-filament-panels::page>
-    <x-filament::section
-        divided
-        collapsible
-        collapsed
-        x-on:collapse-locations-table.window="isCollapsed = true"
-    >
+    <x-filament::section divided collapsible collapsed x-on:collapse-locations-table.window="isCollapsed = true">
         <x-slot name="heading">Events</x-slot>
 
         {{ $this->table }}
     </x-filament::section>
 
     <x-filament::section>
-        <x-slot name="heading">
-            {{ $shiftCode ? 'My schedule: '.$shiftCode : 'Company calendar' }}
-        </x-slot>
+        <x-slot name="heading">{{ $shiftCode ? 'My schedule: '.$shiftCode : 'Company calendar' }}</x-slot>
 
         <div wire:ignore id="waktu-calendar"></div>
     </x-filament::section>
@@ -31,7 +24,7 @@
             const bootWaktuCalendar = () => {
                 const element = document.getElementById('waktu-calendar');
 
-                if (! element || typeof FullCalendar === 'undefined') {
+                if (!element || typeof FullCalendar === 'undefined') {
                     return;
                 }
 
@@ -56,9 +49,7 @@
                     eventDidMount: ({ event, el }) => {
                         const description = event.extendedProps.description;
 
-                        el.title = description
-                            ? `${event.title}\n${description}`
-                            : event.title || '';
+                        el.title = description ? `${event.title}\n${description}` : event.title || '';
                     },
                 });
 
