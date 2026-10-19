@@ -41,17 +41,19 @@ final class Calendar extends Page implements HasTable
 
     public static function canAccess(): bool
     {
-        return auth()->check();
+        return true; // auth()->user()?->can('time.calendar.access') ?? false;
     }
 
     public static function canManage(): bool
     {
         $user = auth()->user();
+        if (! $user) {
+            return false;
+        }
 
-        return $user?->can('waktu.manage')
-            || $user?->can('waktu.holidays')
-            || $user?->can('waktu.shift-definitions')
-            || $user?->can('waktu.overrides');
+        return $user?->can('time.manage-holidays.access')
+            || $user?->can('time.manage-overrides.access')
+            || $user?->can('time.manage-shift-definitions.access');
     }
 
     public function mount(
