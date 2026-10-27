@@ -34,7 +34,7 @@ class TimeServiceProvider extends BitesServiceProvider
     protected function registerCalendarTableHooks(): void
     {
         FilamentView::registerRenderHook(
-            TablesRenderHook::TOOLBAR_SEARCH_AFTER,
+            TablesRenderHook::TOOLBAR_SEARCH_BEFORE,
             fn (): string => $this->renderManageTimeAction(),
             scopes: [Calendar::class],
         );
@@ -49,7 +49,8 @@ class TimeServiceProvider extends BitesServiceProvider
         return Action::make('manageTime')
             ->label('Edit')
             ->icon('heroicon-o-pencil-square')
-            ->url(route('filament.team.pages.manage-holidays'))
+            ->badge()
+            ->url(route('filament.team.pages.manage-calendar'))
             ->toHtml();
     }
 

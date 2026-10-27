@@ -51,9 +51,9 @@ final class Calendar extends Page implements HasTable
             return false;
         }
 
-        return $user?->can('time.manage-holidays.access')
-            || $user?->can('time.manage-overrides.access')
-            || $user?->can('time.manage-shift-definitions.access');
+        $staff = $user->staff;
+
+        return $staff?->hasAnyPermission('manage.time.manage-calendar');
     }
 
     public function mount(
