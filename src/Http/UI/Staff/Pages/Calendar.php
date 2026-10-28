@@ -39,22 +39,31 @@ final class Calendar extends Page implements HasTable
         return false;
     }
 
+    /*
+     |--------------------------------------------------------------------------
+     | Authorization
+     |--------------------------------------------------------------------------
+     */
+
     public static function canAccess(): bool
     {
-        return true; // auth()->user()?->can('time.calendar.access') ?? false;
+        return auth()->user()?->staff?->hasAnyPermission([
+            'access.time.calendar',
+        ]) ?? true;
     }
 
     public static function canManage(): bool
     {
-        $user = auth()->user();
-        if (! $user) {
-            return false;
-        }
-
-        $staff = $user->staff;
-
-        return $staff?->hasAnyPermission('manage.time.manage-calendar');
+        return auth()->user()?->staff?->hasAnyPermission([
+            'manage.time.manage-calendar',
+        ]) ?? false;
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Mount
+    |--------------------------------------------------------------------------
+    */
 
     public function mount(
         CalendarEventService $calendarEvents,
